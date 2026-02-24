@@ -10,7 +10,6 @@
 </head>
 <body>
 
-    <!-- NAV -->
     <nav>
         <div class="nav-inner">
             <div class="logo">
@@ -20,7 +19,6 @@
         </div>
     </nav>
 
-    <!-- HERO -->
     <section class="hero">
         <div class="hero-inner">
             <h1>Extract Financial Statements<br><span class="accent">to Excel Instantly</span></h1>
@@ -28,14 +26,12 @@
         </div>
     </section>
 
-    <!-- MAIN TOOL CARD -->
     <section class="tool-section">
         <div class="tool-card" id="toolCard">
 
             <!-- Upload idle state -->
             <div class="upload-area" id="uploadArea">
                 <input type="file" id="fileInput" accept=".pdf" hidden>
-
                 <div class="upload-icon-wrap">
                     <div class="upload-icon">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -46,18 +42,13 @@
                         </svg>
                     </div>
                 </div>
-
                 <h2>Select PDF File</h2>
                 <p class="upload-hint">or drag and drop your file here</p>
-
-                <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
-                    Choose PDF File
-                </button>
-
+                <button class="btn-primary" onclick="document.getElementById('fileInput').click()">Choose PDF File</button>
                 <p class="upload-note">Supports digital and scanned PDFs up to 50MB</p>
             </div>
 
-            <!-- File selected state (hidden initially) -->
+            <!-- File selected state -->
             <div class="file-selected" id="fileSelected" style="display:none">
                 <div class="file-info">
                     <div class="file-icon">
@@ -76,7 +67,6 @@
                         </svg>
                     </button>
                 </div>
-
                 <button class="btn-primary btn-extract" id="extractBtn" onclick="handleUpload()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -88,14 +78,14 @@
                 </button>
             </div>
 
-            <!-- Processing state (hidden initially) -->
+            <!-- Processing state -->
             <div class="processing" id="processingState" style="display:none">
                 <div class="spinner"></div>
                 <h3>Extracting financial data…</h3>
                 <p id="processingMsg">Analysing your PDF, please wait</p>
             </div>
 
-            <!-- Success state (hidden initially) -->
+            <!-- Success state -->
             <div class="success-state" id="successState" style="display:none">
                 <div class="success-icon">
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -107,7 +97,7 @@
                 <button class="btn-secondary" onclick="resetUpload()">Extract Another File</button>
             </div>
 
-            <!-- Error state (hidden initially) -->
+            <!-- Error state -->
             <div class="error-state" id="errorState" style="display:none">
                 <div class="error-icon">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -124,7 +114,6 @@
         </div>
     </section>
 
-    <!-- FEATURES -->
     <section class="features">
         <div class="features-inner">
             <div class="feature-card">
@@ -145,20 +134,19 @@
             <div class="feature-card">
                 <div class="feature-icon">🏢</div>
                 <h4>Any Company</h4>
-                <p>Works with any listed company's annual report.</p>
+                <p>Works with any listed company's annual report. Company name is auto-detected from the document.</p>
             </div>
         </div>
     </section>
 
-    <!-- FOOTER -->
     <footer>
         <p>FinXtract &copy; 2025 &nbsp;|&nbsp; Built for financial research</p>
     </footer>
 
     <script>
         const fileInput = document.getElementById('fileInput');
+        let pollInterval = null;
 
-        // File input change
         fileInput.addEventListener('change', function () {
             if (this.files.length) showFileSelected(this.files[0]);
         });
@@ -196,52 +184,81 @@
             show('processingState');
             hide('fileSelected');
 
+            // Rotating messages while processing
             const msgs = [
-                'Analysing your PDF, please wait…',
-                'Detecting PDF type…',
+                'Analysing your PDF…',
+                'Detecting document type…',
                 'Extracting financial data…',
-                'Building your Excel file…'
+                'Building your Excel file…',
+                'Almost there…'
             ];
             let msgIdx = 0;
             const msgEl = document.getElementById('processingMsg');
             const msgInterval = setInterval(() => {
                 msgIdx = (msgIdx + 1) % msgs.length;
                 msgEl.textContent = msgs[msgIdx];
-            }, 3000);
+            }, 4000);
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
             try {
-                const response = await fetch('/upload', { method: 'POST', body: formData });
-                clearInterval(msgInterval);
+                // Step 1: Upload and get job_id
+                const uploadRes = await fetch('/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
 
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url  = window.URL.createObjectURL(blob);
-                    const a    = document.createElement('a');
-                    a.href     = url;
-                    a.download = 'financial_output.xlsx';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    show('successState');
-                    hide('processingState');
-                } else {
-                    const err = await response.json();
-                    document.getElementById('errorMsg').textContent =
-                        err.error || 'Could not extract financial data from this PDF.';
-                    show('errorState');
-                    hide('processingState');
+                if (!uploadRes.ok || !uploadData.job_id) {
+                    throw new Error(uploadData.error || 'Upload failed');
                 }
+
+                const jobId = uploadData.job_id;
+                console.log('Job started:', jobId);
+
+                // Step 2: Poll /status/:job_id every 3 seconds
+                pollInterval = setInterval(async () => {
+                    try {
+                        const statusRes  = await fetch(`/status/${jobId}`);
+                        const statusData = await statusRes.json();
+                        console.log('Status:', statusData.status);
+
+                        if (statusData.status === 'done') {
+                            clearInterval(pollInterval);
+                            clearInterval(msgInterval);
+
+                            // Step 3: Trigger download
+                            const a    = document.createElement('a');
+                            a.href     = `/download/${jobId}`;
+                            a.download = statusData.filename || 'financial_output.xlsx';
+                            a.click();
+
+                            show('successState');
+                            hide('processingState');
+
+                        } else if (statusData.status === 'error') {
+                            clearInterval(pollInterval);
+                            clearInterval(msgInterval);
+                            document.getElementById('errorMsg').textContent =
+                                statusData.error || 'Extraction failed.';
+                            show('errorState');
+                            hide('processingState');
+                        }
+                        // if 'processing' — keep polling
+
+                    } catch (pollErr) {
+                        console.error('Poll error:', pollErr);
+                    }
+                }, 3000);
+
             } catch (err) {
                 clearInterval(msgInterval);
-                document.getElementById('errorMsg').textContent = 'Network error: ' + err.message;
+                document.getElementById('errorMsg').textContent = err.message || 'Network error.';
                 show('errorState');
                 hide('processingState');
             }
         }
 
         function resetUpload() {
+            if (pollInterval) clearInterval(pollInterval);
             fileInput.value = '';
             hide('fileSelected');
             hide('processingState');

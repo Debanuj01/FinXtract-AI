@@ -24,10 +24,22 @@ def extract_with_gemini_vision(image_paths):
 
     client = genai.Client(api_key=api_key)
 
+    # ── Only send first 3 pages — income statement is always in first 2-3 pages
+    # This cuts processing time in half and avoids Render's 30s timeout
+    max_pages = int(os.getenv("MAX_PAGES", "3"))
+    image_paths = image_paths[:max_pages]
+    print(f"  Processing {len(image_paths)} page(s) (max={max_pages})")
+
     images = []
     for path in image_paths:
         try:
-            images.append(Image.open(path))
+            img = Image.open(path)
+            # Resize large images to reduce token count and speed up response
+            max_size = 1600
+            if img.width > max_size or img.height > max_size:
+                img.thumbnail((max_size, max_size), Image.LANCZOS)
+                print(f"  Resized {os.path.basename(path)} to {img.size}")
+            images.append(img)
             print(f"  Loaded image: {path}")
         except Exception as e:
             print(f"  Could not load image {path}: {e}")
