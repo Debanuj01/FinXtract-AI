@@ -144,12 +144,21 @@ brew install poppler
 sudo apt install poppler-utils
 ```
 ### Run locally
+
+**Windows:** 
+```bash
 python -m venv venv
-venv\Scripts\activate   # Windows
-source venv/bin/activate  # Mac/Linux
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+```
+**Mac:**
+```bash
+source venv/bin/activate
+```
 
+**Linux:**
+```bash
+source venv/bin/activate
 ---
 
 ### Installation
