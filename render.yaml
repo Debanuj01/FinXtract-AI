@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: financial-research-tool
+    runtime: python
+    buildCommand: |
+      apt-get update && apt-get install -y poppler-utils && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: UPLOAD_FOLDER
+        value: /tmp/uploads
+      - key: OUTPUT_FOLDER
+        value: /tmp/outputs
+      - key: TEMP_DIR
+        value: /tmp/pdf_pages
+    healthCheckPath: /health

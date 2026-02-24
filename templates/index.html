@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinExtract — Financial Statement Extraction Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-inner">
+            <div class="logo">
+                <span class="logo-icon">📊</span>
+                <span class="logo-text">Fin<strong>Xtract</strong></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-inner">
+            <h1>Extract Financial Statements<br><span class="accent">to Excel Instantly</span></h1>
+            <p class="hero-sub">Upload any annual report PDF — digital or scanned — and get a clean, structured Excel file with all line items, totals, and key metrics.</p>
+        </div>
+    </section>
+
+    <!-- MAIN TOOL CARD -->
+    <section class="tool-section">
+        <div class="tool-card" id="toolCard">
+
+            <!-- Upload idle state -->
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept=".pdf" hidden>
+
+                <div class="upload-icon-wrap">
+                    <div class="upload-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <polyline points="9,15 12,12 15,15"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <h2>Select PDF File</h2>
+                <p class="upload-hint">or drag and drop your file here</p>
+
+                <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+                    Choose PDF File
+                </button>
+
+                <p class="upload-note">Supports digital and scanned PDFs up to 50MB</p>
+            </div>
+
+            <!-- File selected state (hidden initially) -->
+            <div class="file-selected" id="fileSelected" style="display:none">
+                <div class="file-info">
+                    <div class="file-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                        </svg>
+                    </div>
+                    <div class="file-meta">
+                        <span class="file-name" id="fileName">document.pdf</span>
+                        <span class="file-size" id="fileSize">—</span>
+                    </div>
+                    <button class="btn-remove" onclick="resetUpload()" title="Remove file">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <button class="btn-primary btn-extract" id="extractBtn" onclick="handleUpload()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <polyline points="8,13 12,17 16,13"/>
+                        <line x1="12" y1="17" x2="12" y2="9"/>
+                    </svg>
+                    Extract to Excel
+                </button>
+            </div>
+
+            <!-- Processing state (hidden initially) -->
+            <div class="processing" id="processingState" style="display:none">
+                <div class="spinner"></div>
+                <h3>Extracting financial data…</h3>
+                <p id="processingMsg">Analysing your PDF, please wait</p>
+            </div>
+
+            <!-- Success state (hidden initially) -->
+            <div class="success-state" id="successState" style="display:none">
+                <div class="success-icon">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12"/>
+                    </svg>
+                </div>
+                <h3>Extraction Complete</h3>
+                <p>Your Excel file has been downloaded successfully.</p>
+                <button class="btn-secondary" onclick="resetUpload()">Extract Another File</button>
+            </div>
+
+            <!-- Error state (hidden initially) -->
+            <div class="error-state" id="errorState" style="display:none">
+                <div class="error-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <h3>Extraction Failed</h3>
+                <p id="errorMsg">Could not extract financial data from the PDF.</p>
+                <button class="btn-secondary" onclick="resetUpload()">Try Again</button>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features">
+        <div class="features-inner">
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h4>Smart Detection</h4>
+                <p>Automatically detects whether your PDF is digital or scanned and picks the best extraction method.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h4>Full P&L Extraction</h4>
+                <p>Extracts all line items, sub-totals, EPS data, and key financial metrics into structured columns.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h4>Excel Ready</h4>
+                <p>Output includes live Excel formulas for EBITDA, PAT Margin, PBT Margin, and cost ratios.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🏢</div>
+                <h4>Any Company</h4>
+                <p>Works with any listed company's annual report.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>FinExtract &copy; 2025 &nbsp;|&nbsp; Built for financial research</p>
+    </footer>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+
+        // File input change
+        fileInput.addEventListener('change', function () {
+            if (this.files.length) showFileSelected(this.files[0]);
+        });
+
+        // Drag and drop
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.pdf')) {
+                fileInput.files = e.dataTransfer.files;
+                showFileSelected(file);
+            }
+        });
+
+        function showFileSelected(file) {
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatBytes(file.size);
+            show('fileSelected');
+            hide('uploadArea');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        async function handleUpload() {
+            if (!fileInput.files.length) return;
+
+            show('processingState');
+            hide('fileSelected');
+
+            const msgs = [
+                'Analysing your PDF, please wait…',
+                'Detecting PDF type…',
+                'Extracting financial data…',
+                'Building your Excel file…'
+            ];
+            let msgIdx = 0;
+            const msgEl = document.getElementById('processingMsg');
+            const msgInterval = setInterval(() => {
+                msgIdx = (msgIdx + 1) % msgs.length;
+                msgEl.textContent = msgs[msgIdx];
+            }, 3000);
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                clearInterval(msgInterval);
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url  = window.URL.createObjectURL(blob);
+                    const a    = document.createElement('a');
+                    a.href     = url;
+                    a.download = 'financial_output.xlsx';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    show('successState');
+                    hide('processingState');
+                } else {
+                    const err = await response.json();
+                    document.getElementById('errorMsg').textContent =
+                        err.error || 'Could not extract financial data from this PDF.';
+                    show('errorState');
+                    hide('processingState');
+                }
+            } catch (err) {
+                clearInterval(msgInterval);
+                document.getElementById('errorMsg').textContent = 'Network error: ' + err.message;
+                show('errorState');
+                hide('processingState');
+            }
+        }
+
+        function resetUpload() {
+            fileInput.value = '';
+            hide('fileSelected');
+            hide('processingState');
+            hide('successState');
+            hide('errorState');
+            show('uploadArea');
+        }
+
+        function show(id) { document.getElementById(id).style.display = ''; }
+        function hide(id) { document.getElementById(id).style.display = 'none'; }
+    </script>
+</body>
+</html>
