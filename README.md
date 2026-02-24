@@ -159,7 +159,7 @@ source venv/bin/activate
 **Linux:**
 ```bash
 source venv/bin/activate
----
+```
 
 ### Installation
 
